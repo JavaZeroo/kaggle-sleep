@@ -18,10 +18,12 @@ class Spec2DCNN(nn.Module):
         encoder_weights: Optional[str] = None,
         mixup_alpha: float = 0.5,
         cutmix_alpha: float = 0.5,
+        unet_class: str = "Unet",
     ):
         super().__init__()
         self.feature_extractor = feature_extractor
-        self.encoder = smp.Unet(
+        self.unet_class = getattr(smp, unet_class)
+        self.encoder = self.unet_class(
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
             in_channels=in_channels,
