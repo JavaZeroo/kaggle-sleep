@@ -135,22 +135,23 @@ class UNet1DDecoder(nn.Module):
 
         factor = 2 if bilinear else 1
         self.inc = DoubleConv(
-            self.n_channels, 64, norm=partial(create_layer_norm, length=self.duration)
+            self.n_channels, 64, norm=partial(create_layer_norm, length=self.duration), se=se, res=res
         )
         self.down1 = Down(
-            64, 128, scale_factor, norm=partial(create_layer_norm, length=self.duration // 2)
+            64, 128, scale_factor, norm=partial(create_layer_norm, length=self.duration // 2), se=se, res=res
         )
         self.down2 = Down(
-            128, 256, scale_factor, norm=partial(create_layer_norm, length=self.duration // 4)
+            128, 256, scale_factor, norm=partial(create_layer_norm, length=self.duration // 4), se=se, res=res
         )
         self.down3 = Down(
-            256, 512, scale_factor, norm=partial(create_layer_norm, length=self.duration // 8)
+            256, 512, scale_factor, norm=partial(create_layer_norm, length=self.duration // 8), se=se, res=res
         )
         self.down4 = Down(
             512,
             1024 // factor,
             scale_factor,
             norm=partial(create_layer_norm, length=self.duration // 16),
+            se=se, res=res
         )
         self.up1 = Up(
             1024,

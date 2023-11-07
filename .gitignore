@@ -164,3 +164,4 @@ processed_data/
 output/
 
 nohup.out
+best_model.pth

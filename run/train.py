@@ -2,7 +2,7 @@ import os
 import sys
 sys.path.append(os.getcwd())
 
-
+import json
 import logging
 from pathlib import Path
 
@@ -16,10 +16,12 @@ from pytorch_lightning.callbacks import (
     RichModelSummary,
     RichProgressBar,
 )
+from rich import print_json
 from pytorch_lightning.loggers import WandbLogger
 
 from src.datamodule.seg import SegDataModule
 from src.modelmodule.seg import SegModel
+from omegaconf import OmegaConf
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s:%(name)s - %(message)s"
@@ -30,8 +32,7 @@ LOGGER = logging.getLogger(Path(__file__).name)
 @hydra.main(config_path="conf", config_name="train", version_base="1.2")
 def main(cfg: DictConfig):  # type: ignore
     seed_everything(cfg.seed)
-
-    # init lightning model
+    print_json(data=OmegaConf.to_container(OmegaConf.masked_copy(cfg, keys=set(cfg.keys()) - {'split'}), resolve=True))    # init lightning model
     datamodule = SegDataModule(cfg)
     LOGGER.info("Set Up DataModule")
     model = SegModel(
