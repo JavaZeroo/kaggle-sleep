@@ -7,6 +7,7 @@ from src.models.decoder.lstmdecoder import LSTMDecoder
 from src.models.decoder.mlpdecoder import MLPDecoder
 from src.models.decoder.transformerdecoder import TransformerDecoder
 from src.models.decoder.unet1ddecoder import UNet1DDecoder
+from src.models.decoder.informer import Informer
 from src.models.feature_extractor.cnn import CNNSpectrogram
 from src.models.feature_extractor.lstm import LSTMFeatureExtractor
 from src.models.feature_extractor.panns import PANNsFeatureExtractor
@@ -103,6 +104,25 @@ def get_decoder(cfg: DictConfig, n_channels: int, n_classes: int, num_timesteps:
         )
     elif cfg.decoder.name == "MLPDecoder":
         decoder = MLPDecoder(n_channels=n_channels, n_classes=n_classes)
+    elif cfg.decoder.name == "Informer":
+        decoder = Informer(
+            enc_in=n_channels, 
+            dec_in=n_channels, 
+            c_out=n_classes, 
+            factor=cfg.decoder.factor, 
+            d_model=cfg.decoder.d_model,
+            n_heads=cfg.decoder.n_heads,
+            e_layers=cfg.decoder.e_layers,
+            d_layers=cfg.decoder.d_layers,
+            d_ff=cfg.decoder.d_ff,
+            dropout=cfg.decoder.dropout,
+            attn=cfg.decoder.attn,
+            embed=cfg.decoder.embed,
+            freq=cfg.decoder.freq,
+            activation=cfg.decoder.activation,
+            distil=cfg.decoder.distil,
+            mix=cfg.decoder.mix,
+        )
     else:
         raise ValueError(f"Invalid decoder name: {cfg.decoder.name}")
 
