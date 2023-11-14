@@ -305,6 +305,25 @@ class AttentionLayer(nn.Module):
 
         return self.out_projection(out), attn
 
+class AttentionLayer_torch(nn.Module):
+    def __init__(self, attention, d_model, n_heads, 
+                 d_keys=None, d_values=None, mix=False, 
+                 dropout=0.1):
+        super(AttentionLayer_torch, self).__init__()
+        self.inner_attention = nn.MultiheadAttention(embed_dim=d_model, num_heads=n_heads, dropout=dropout)
+
+    def forward(self, queries, keys, values, attn_mask=None):
+        # Convert (N, L, E) to (L, N, E)
+        queries = queries.transpose(0, 1)
+        keys = keys.transpose(0, 1)
+        values = values.transpose(0, 1)
+        
+        # Apply multi-head attention
+        attn_output, attn_output_weights = self.inner_attention(queries, keys, values, attn_mask=attn_mask)
+        # The output is already in the (N, L, E) format, so we don't need to transpose it back
+        return attn_output.transpose(0, 1), attn_output_weights
+
+
 class DataEmbedding(nn.Module):
     def __init__(self, c_in, d_model, embed_type='fixed', freq='h', dropout=0.1, max_len=17280):
         super(DataEmbedding, self).__init__()
@@ -412,8 +431,8 @@ class TimeFeatureEmbedding(nn.Module):
 
 class Informer(nn.Module):
     def __init__(self, enc_in, dec_in, c_out, 
-                factor=5, d_model=512, n_heads=8, e_layers=3, d_layers=2, d_ff=512, 
-                dropout=0.0, attn='prob', embed='fixed', freq='h', activation='gelu', 
+                factor=5, d_model=512, n_heads=8, e_layers=3, d_layers=2, d_ff=512, max_len=17280,
+                dropout=0.0, attn='prob', attn_layer='custom', embed='fixed', freq='h', activation='gelu', 
                 distil=True, mix=True,
         ):
         super(Informer, self).__init__()
@@ -421,15 +440,16 @@ class Informer(nn.Module):
         self.attn = attn
 
         # Encoding
-        self.enc_embedding = DataEmbedding(enc_in, d_model, embed, freq, dropout, max_len=17280)
-        self.dec_embedding = DataEmbedding(dec_in, d_model, embed, freq, dropout, max_len=17280)
+        self.enc_embedding = DataEmbedding(enc_in, d_model, embed, freq, dropout, max_len=max_len)
+        self.dec_embedding = DataEmbedding(dec_in, d_model, embed, freq, dropout, max_len=max_len)
         # Attention
         Attn = ProbAttention if attn=='prob' else FullAttention
+        Attn_layer = AttentionLayer if attn_layer=='custom' else AttentionLayer_torch
         # Encoder
         self.encoder = Encoder(
             [
                 EncoderLayer(
-                    AttentionLayer(Attn(False, factor, attention_dropout=dropout, output_attention=False), 
+                    Attn_layer(Attn(False, factor, attention_dropout=dropout, output_attention=False), 
                                 d_model, n_heads, mix=False),
                     d_model,
                     d_ff,
@@ -448,9 +468,9 @@ class Informer(nn.Module):
         self.decoder = Decoder(
             [
                 DecoderLayer(
-                    AttentionLayer(Attn(True, factor, attention_dropout=dropout, output_attention=False), 
+                    Attn_layer(Attn(True, factor, attention_dropout=dropout, output_attention=False), 
                                 d_model, n_heads, mix=mix),
-                    AttentionLayer(FullAttention(False, factor, attention_dropout=dropout, output_attention=False), 
+                    Attn_layer(Attn(False, factor, attention_dropout=dropout, output_attention=False), 
                                 d_model, n_heads, mix=False),
                     d_model,
                     d_ff,
@@ -461,7 +481,13 @@ class Informer(nn.Module):
             ],
             norm_layer=torch.nn.LayerNorm(d_model)
         )
-        self.projection = nn.Linear(d_model, c_out, bias=True)
+        # self.projection = nn.Linear(d_model, c_out, bias=True)
+        self.cls = nn.Sequential(
+            nn.Conv1d(d_model, d_model, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.Conv1d(d_model, c_out, kernel_size=1, padding=0),
+            nn.Dropout(dropout),
+        )
 
     def forward(self, x_enc, 
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
@@ -472,5 +498,6 @@ class Informer(nn.Module):
 
         dec_out = self.dec_embedding(x_dec)
         dec_out = self.decoder(dec_out, enc_out, x_mask=dec_self_mask, cross_mask=dec_enc_mask)
-        dec_out = self.projection(dec_out)
+        # dec_out = self.projection(dec_out)
+        dec_out = self.cls(dec_out.transpose(1, 2)).transpose(1, 2)
         return dec_out  # 返回整个dec_out

@@ -19,6 +19,7 @@ class Spec2DCNN(nn.Module):
         mixup_alpha: float = 0.5,
         cutmix_alpha: float = 0.5,
         unet_class: str = "Unet",
+        loss_fn: nn.Module = nn.BCEWithLogitsLoss(),
     ):
         super().__init__()
         self.feature_extractor = feature_extractor
@@ -32,7 +33,7 @@ class Spec2DCNN(nn.Module):
         self.decoder = decoder
         self.mixup = Mixup(mixup_alpha)
         self.cutmix = Cutmix(cutmix_alpha)
-        self.loss_fn = nn.BCEWithLogitsLoss()
+        self.loss_fn = loss_fn
 
     def forward(
         self,

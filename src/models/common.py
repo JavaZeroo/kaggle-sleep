@@ -3,15 +3,20 @@ from typing import Union
 import torch.nn as nn
 from omegaconf import DictConfig
 
+from src.models.decoder.informer import Informer
+from src.models.decoder.itransformer import ITransformer
 from src.models.decoder.lstmdecoder import LSTMDecoder
 from src.models.decoder.mlpdecoder import MLPDecoder
 from src.models.decoder.transformerdecoder import TransformerDecoder
 from src.models.decoder.unet1ddecoder import UNet1DDecoder
-from src.models.decoder.informer import Informer
 from src.models.feature_extractor.cnn import CNNSpectrogram
 from src.models.feature_extractor.lstm import LSTMFeatureExtractor
 from src.models.feature_extractor.panns import PANNsFeatureExtractor
 from src.models.feature_extractor.spectrogram import SpecFeatureExtractor
+from src.models.feature_extractor.transformer import TransformerFeatureExtractor
+from src.models.feature_extractor.mix import MixedFeatureExtractor
+from src.models.loss.focal import FocalLoss
+from src.models.loss.mix import CombinedLoss
 from src.models.spec1D import Spec1D
 from src.models.spec2Dcnn import Spec2DCNN
 
@@ -26,47 +31,58 @@ def get_feature_extractor(
     cfg: DictConfig, feature_dim: int, num_timesteps: int
 ) -> FEATURE_EXTRACTORS:
     feature_extractor: FEATURE_EXTRACTORS
-    if cfg.feature_extractor.name == "CNNSpectrogram":
+    if cfg.name == "CNNSpectrogram":
         feature_extractor = CNNSpectrogram(
             in_channels=feature_dim,
-            base_filters=cfg.feature_extractor.base_filters,
-            kernel_sizes=cfg.feature_extractor.kernel_sizes,
-            stride=cfg.feature_extractor.stride,
-            sigmoid=cfg.feature_extractor.sigmoid,
+            base_filters=cfg.base_filters,
+            kernel_sizes=cfg.kernel_sizes,
+            stride=cfg.stride,
+            sigmoid=cfg.sigmoid,
             output_size=num_timesteps,
             conv=nn.Conv1d,
-            reinit=cfg.feature_extractor.reinit,
+            reinit=cfg.reinit,
         )
-    elif cfg.feature_extractor.name == "PANNsFeatureExtractor":
+    elif cfg.name == "PANNsFeatureExtractor":
         feature_extractor = PANNsFeatureExtractor(
             in_channels=feature_dim,
-            base_filters=cfg.feature_extractor.base_filters,
-            kernel_sizes=cfg.feature_extractor.kernel_sizes,
-            stride=cfg.feature_extractor.stride,
-            sigmoid=cfg.feature_extractor.sigmoid,
+            base_filters=cfg.base_filters,
+            kernel_sizes=cfg.kernel_sizes,
+            stride=cfg.stride,
+            sigmoid=cfg.sigmoid,
             output_size=num_timesteps,
             conv=nn.Conv1d,
-            reinit=cfg.feature_extractor.reinit,
-            win_length=cfg.feature_extractor.win_length,
+            reinit=cfg.reinit,
+            win_length=cfg.win_length,
         )
-    elif cfg.feature_extractor.name == "LSTMFeatureExtractor":
+    elif cfg.name == "LSTMFeatureExtractor":
         feature_extractor = LSTMFeatureExtractor(
             in_channels=feature_dim,
-            hidden_size=cfg.feature_extractor.hidden_size,
-            num_layers=cfg.feature_extractor.num_layers,
-            bidirectional=cfg.feature_extractor.bidirectional,
+            hidden_size=cfg.hidden_size,
+            num_layers=cfg.num_layers,
+            bidirectional=cfg.bidirectional,
             out_size=num_timesteps,
         )
-    elif cfg.feature_extractor.name == "SpecFeatureExtractor":
+    elif cfg.name == "SpecFeatureExtractor":
         feature_extractor = SpecFeatureExtractor(
             in_channels=feature_dim,
-            height=cfg.feature_extractor.height,
-            hop_length=cfg.feature_extractor.hop_length,
-            win_length=cfg.feature_extractor.win_length,
+            height=cfg.height,
+            hop_length=cfg.hop_length,
+            win_length=cfg.win_length,
             out_size=num_timesteps,
         )
+    elif cfg.name == "TransformerExtractor":
+        feature_extractor = TransformerFeatureExtractor(
+            in_channels=feature_dim,
+            height=cfg.height,
+            num_layers=cfg.num_layers,
+            nhead=cfg.nhead,
+            dim_feedforward=cfg.dim_feedforward,
+            out_size=num_timesteps,
+        )
+    elif cfg.name == "MIXExtractor":
+        feature_extractor = MixedFeatureExtractor(get_feature_extractor(cfg.extractor1, feature_dim, num_timesteps), get_feature_extractor(cfg.extractor2, feature_dim, num_timesteps))
     else:
-        raise ValueError(f"Invalid feature extractor name: {cfg.feature_extractor.name}")
+        raise ValueError(f"Invalid feature extractor name: {cfg.name}")
 
     return feature_extractor
 
@@ -115,25 +131,56 @@ def get_decoder(cfg: DictConfig, n_channels: int, n_classes: int, num_timesteps:
             e_layers=cfg.decoder.e_layers,
             d_layers=cfg.decoder.d_layers,
             d_ff=cfg.decoder.d_ff,
+            max_len=cfg.duration,
             dropout=cfg.decoder.dropout,
             attn=cfg.decoder.attn,
+            attn_layer=cfg.decoder.attn_layer, 
             embed=cfg.decoder.embed,
             freq=cfg.decoder.freq,
             activation=cfg.decoder.activation,
             distil=cfg.decoder.distil,
             mix=cfg.decoder.mix,
         )
+    elif cfg.decoder.name == "ITransformer":
+        decoder = ITransformer(
+            c_in=cfg.feature_extractor.base_filters,
+            c_out=n_classes,
+            seq_len=cfg.duration//cfg.downsample_rate, 
+            pred_len=cfg.duration//cfg.downsample_rate, 
+            e_layers=cfg.decoder.e_layers, 
+            d_model=cfg.decoder.d_model, 
+            d_ff=cfg.decoder.d_ff, 
+            factor=cfg.decoder.factor, 
+            n_heads=cfg.decoder.n_heads, 
+            activation=cfg.decoder.activation, 
+            dropout=0.1, 
+        )
     else:
         raise ValueError(f"Invalid decoder name: {cfg.decoder.name}")
 
     return decoder
 
+def get_loss_fn(loss_cfg: DictConfig) -> nn.Module:
+    if loss_cfg.name == "BCE":
+        loss_fn = nn.BCEWithLogitsLoss()
+    elif loss_cfg.name == "MSE":
+        loss_fn = nn.MSELoss()
+    elif loss_cfg.name == "NLL":
+        loss_fn = nn.NLLLoss()
+    elif loss_cfg.name == "Focal":
+        loss_fn = FocalLoss(alpha=loss_cfg.alpha, gamma=loss_cfg.gamma)
+    elif loss_cfg.name == "MIX":
+        loss_fn = CombinedLoss(loss1=get_loss_fn(loss_cfg.loss1), loss2=get_loss_fn(loss_cfg.loss2))
+    else:
+        raise ValueError(f"Invalid loss name: {loss_cfg.name}")
+    return loss_fn
 
 def get_model(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: int) -> MODELS:
     model: MODELS
     if cfg.model.name == "Spec2DCNN":
-        feature_extractor = get_feature_extractor(cfg, feature_dim, num_timesteps)
+        feature_extractor = get_feature_extractor(cfg.feature_extractor, feature_dim, num_timesteps)
         decoder = get_decoder(cfg, feature_extractor.height, n_classes, num_timesteps)
+        loss_fn = get_loss_fn(cfg.loss)
         model = Spec2DCNN(
             feature_extractor=feature_extractor,
             decoder=decoder,
@@ -143,6 +190,7 @@ def get_model(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: 
             mixup_alpha=cfg.augmentation.mixup_alpha,
             cutmix_alpha=cfg.augmentation.cutmix_alpha,
             unet_class=cfg.model.unet_class,
+            loss_fn=loss_fn
         )
     elif cfg.model.name == "Spec1D":
         feature_extractor = get_feature_extractor(cfg, feature_dim, num_timesteps)

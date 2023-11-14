@@ -11,6 +11,7 @@ hydra:
 
 defaults:
   - _self_
+  - loss: BCE
   - dir: local
   - model: Spec2DCNN
   - feature_extractor: CNNSpectrogram
@@ -30,10 +31,10 @@ num_workers: 24
 accelerator: auto
 use_amp: true
 debug: false
-gradient_clip_val: 1.0
+gradient_clip_val: 0.1
 accumulate_grad_batches: 1
-monitor: val_loss
-monitor_mode: min
+monitor: val_score
+monitor_mode: max
 check_val_every_n_epoch: 1
 
 # Dataset
@@ -72,7 +73,7 @@ features:
 
 # optimizer
 optimizer:
-  lr: 0.0005
+  lr: 0.001
 
 # scheduler
 scheduler:

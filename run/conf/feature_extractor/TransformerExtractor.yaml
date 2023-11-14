@@ -1,0 +1,5 @@
+name: TransformerExtractor
+height: 64
+num_layers: 2
+nhead: 8
+dim_feedforward: 256

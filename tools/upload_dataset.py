@@ -32,12 +32,14 @@ def copy_files_with_exts(source_dir: Path, dest_dir: Path, exts: list):
 @click.command()
 @click.option("--title", "-t", default="CMI-model")
 @click.option("--dir", "-d", type=Path, default="./output/train")
+@click.option("--exp", type=str, default=None)
 @click.option("--extentions", "-e", type=list[str], default=["best_model.pth", ".hydra/*.yaml"])
-@click.option("--user_name", "-u", default="tubotubo")
+@click.option("--user_name", "-u", default="jimmyisme1")
 @click.option("--new", "-n", is_flag=True)
 def main(
     title: str,
     dir: Path,
+    exp: str, 
     extentions: list[str] = [".pth", ".yaml"],
     user_name: str = "tubotubo",
     new: bool = False,
@@ -54,7 +56,13 @@ def main(
     tmp_dir = Path("./tmp")
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
-    # 拡張子が.pthのファイルをコピー
+    if exp is not None:
+        upload_dir = Path("./upload")
+        import os
+        os.system("rm -rf ./upload")
+        # upload_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(dir / exp, upload_dir / exp)
+        dir = upload_dir
     copy_files_with_exts(dir, tmp_dir, extentions)
 
     # dataset-metadata.jsonを作成
@@ -68,7 +76,7 @@ def main(
     # api認証
     api = KaggleApi()
     api.authenticate()
-
+    print("authenticated")
     if new:
         api.dataset_create_new(
             folder=tmp_dir,

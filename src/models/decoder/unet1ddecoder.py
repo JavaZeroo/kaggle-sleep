@@ -184,11 +184,9 @@ class UNet1DDecoder(nn.Module):
             nn.Conv1d(64, self.n_classes, kernel_size=1, padding=0),
             nn.Dropout(dropout),
         )
-        self.loss_fn = nn.BCEWithLogitsLoss()
 
     def forward(
-        self, x: torch.Tensor, labels: Optional[torch.Tensor] = None
-    ) -> dict[str, Optional[torch.Tensor]]:
+        self, x: torch.Tensor):
         """Forward
 
         Args:

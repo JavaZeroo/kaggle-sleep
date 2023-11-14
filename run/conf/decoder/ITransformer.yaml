@@ -1,0 +1,9 @@
+name: ITransformer
+output_attention: False
+d_model: 64
+d_ff: 64
+dropout: 0.1
+n_heads: 4
+activation: 'gelu'
+e_layers: 3
+factor: 5
