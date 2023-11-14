@@ -11,6 +11,7 @@ hydra:
 
 defaults:
   - _self_
+  - loss: BCE
   - dir: local
   - model: Spec2DCNN
   - feature_extractor: CNNSpectrogram
