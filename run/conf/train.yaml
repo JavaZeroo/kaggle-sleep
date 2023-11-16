@@ -14,11 +14,11 @@ defaults:
   - loss: BCE
   - dir: local
   - model: Spec2DCNN
-  - sigmod: false
   - feature_extractor: MixedFeatureExtractor
   - decoder: UNet1DDecoder
   - split: fold_0
 
+sigmod: false
 seed: 42
 exp_name: dummy
 duration: 5760 # duration * 5 = 秒数

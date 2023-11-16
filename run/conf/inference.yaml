@@ -14,10 +14,10 @@ defaults:
   - loss: BCE
   - dir: local
   - model: Spec2DCNN
-  - sigmod: true
   - feature_extractor: CNNSpectrogram
   - decoder: UNet1DDecoder
 
+sigmod: true
 exp_name: dummy
 phase: test
 weight:
