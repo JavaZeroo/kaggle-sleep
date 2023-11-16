@@ -24,6 +24,7 @@ def load_model(cfg: DictConfig) -> nn.Module:
         feature_dim=len(cfg.features),
         n_classes=len(cfg.labels),
         num_timesteps=num_timesteps // cfg.downsample_rate,
+        sigmod=cfg.sigmod,
     )
 
     # load weights
@@ -70,7 +71,7 @@ def get_test_dataloader(cfg: DictConfig) -> DataLoader:
 
 
 def inference(
-    duration: int, loader: DataLoader, model: nn.Module, device: torch.device, use_amp
+    duration: int, loader: DataLoader, model: nn.Module, device: torch.device, use_amp, sigmod
 ) -> tuple[list[str], np.ndarray]:
     model = model.to(device)
     model.eval()
@@ -81,7 +82,9 @@ def inference(
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=use_amp):
                 x = batch["feature"].to(device)
-                pred = model(x)["logits"].sigmoid()
+                pred = model(x)["logits"]
+                if sigmod:
+                    pred = pred.sigmoid()
                 pred = resize(
                     pred.detach().cpu(),
                     size=[duration, pred.shape[2]],
@@ -120,7 +123,7 @@ def main(cfg: DictConfig):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     with trace("inference"):
-        keys, preds = inference(cfg.duration, test_dataloader, model, device, use_amp=cfg.use_amp)
+        keys, preds = inference(cfg.duration, test_dataloader, model, device, use_amp=cfg.use_amp, sigmod=not cfg.sigmod)
 
     with trace("make submission"):
         sub_df = make_submission(

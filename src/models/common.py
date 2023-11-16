@@ -79,8 +79,8 @@ def get_feature_extractor(
             dim_feedforward=cfg.dim_feedforward,
             out_size=num_timesteps,
         )
-    elif cfg.name == "MIXExtractor":
-        feature_extractor = MixedFeatureExtractor(get_feature_extractor(cfg.extractor1, feature_dim, num_timesteps), get_feature_extractor(cfg.extractor2, feature_dim, num_timesteps))
+    elif cfg.name == "MixedFeatureExtractor":
+        feature_extractor = MixedFeatureExtractor(extractors=[get_feature_extractor(extractor, feature_dim, num_timesteps) for extractor in cfg.extractors])
     else:
         raise ValueError(f"Invalid feature extractor name: {cfg.name}")
 
@@ -160,9 +160,12 @@ def get_decoder(cfg: DictConfig, n_channels: int, n_classes: int, num_timesteps:
 
     return decoder
 
-def get_loss_fn(loss_cfg: DictConfig) -> nn.Module:
+def get_loss_fn(loss_cfg: DictConfig, sigmod: bool) -> nn.Module:
     if loss_cfg.name == "BCE":
-        loss_fn = nn.BCEWithLogitsLoss()
+        if sigmod:
+            loss_fn = nn.BCELoss()
+        else:
+            loss_fn = nn.BCEWithLogitsLoss()
     elif loss_cfg.name == "MSE":
         loss_fn = nn.MSELoss()
     elif loss_cfg.name == "NLL":
@@ -175,12 +178,12 @@ def get_loss_fn(loss_cfg: DictConfig) -> nn.Module:
         raise ValueError(f"Invalid loss name: {loss_cfg.name}")
     return loss_fn
 
-def get_model(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: int) -> MODELS:
+def get_model(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: int, sigmod:bool) -> MODELS:
     model: MODELS
     if cfg.model.name == "Spec2DCNN":
         feature_extractor = get_feature_extractor(cfg.feature_extractor, feature_dim, num_timesteps)
         decoder = get_decoder(cfg, feature_extractor.height, n_classes, num_timesteps)
-        loss_fn = get_loss_fn(cfg.loss)
+        loss_fn = get_loss_fn(cfg.loss, sigmod)
         model = Spec2DCNN(
             feature_extractor=feature_extractor,
             decoder=decoder,
@@ -190,7 +193,8 @@ def get_model(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: 
             mixup_alpha=cfg.augmentation.mixup_alpha,
             cutmix_alpha=cfg.augmentation.cutmix_alpha,
             unet_class=cfg.model.unet_class,
-            loss_fn=loss_fn
+            loss_fn=loss_fn,
+            sigmod=sigmod,
         )
     elif cfg.model.name == "Spec1D":
         feature_extractor = get_feature_extractor(cfg, feature_dim, num_timesteps)

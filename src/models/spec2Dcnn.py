@@ -20,6 +20,7 @@ class Spec2DCNN(nn.Module):
         cutmix_alpha: float = 0.5,
         unet_class: str = "Unet",
         loss_fn: nn.Module = nn.BCEWithLogitsLoss(),
+        sigmod: bool = False,
     ):
         super().__init__()
         self.feature_extractor = feature_extractor
@@ -34,6 +35,10 @@ class Spec2DCNN(nn.Module):
         self.mixup = Mixup(mixup_alpha)
         self.cutmix = Cutmix(cutmix_alpha)
         self.loss_fn = loss_fn
+        if sigmod:
+            self.sigmod = nn.Sigmoid()
+        else:
+            self.sigmod = None
 
     def forward(
         self,
@@ -59,7 +64,8 @@ class Spec2DCNN(nn.Module):
 
         x = self.encoder(x).squeeze(1)  # (batch_size, height, n_timesteps)
         logits = self.decoder(x)  # (batch_size, n_timesteps, n_classes)
-
+        if self.sigmod is not None:
+            logits = self.sigmod(logits)
         output = {"logits": logits}
         if labels is not None:
             loss = self.loss_fn(logits, labels)

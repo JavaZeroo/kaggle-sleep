@@ -14,7 +14,8 @@ defaults:
   - loss: BCE
   - dir: local
   - model: Spec2DCNN
-  - feature_extractor: CNNSpectrogram
+  - sigmod: false
+  - feature_extractor: MixedFeatureExtractor
   - decoder: UNet1DDecoder
   - split: fold_0
 
