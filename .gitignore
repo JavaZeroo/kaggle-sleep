@@ -165,3 +165,4 @@ output/
 upload/
 nohup.out
 best_model.pth
+temp/

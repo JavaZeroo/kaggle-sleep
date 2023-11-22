@@ -24,8 +24,9 @@ class FocalLoss(nn.Module):
 if __name__ == '__main__':
     loss_fn = FocalLoss(gamma=2)
     # logits假设是未经sigmoid的原始输出
-    input = torch.randn(3, 1440, 3, requires_grad=True)
+    input = torch.rand(3, 1440, 3)
     # 目标现在是0或1
-    target = torch.empty(3, 1440, 3).random_(2)  # random_2()生成0或1的随机数
+    target = torch.rand(3, 1440, 3)
+    print(target.min(), target.max())
     loss = loss_fn(input, target)
     print(loss)

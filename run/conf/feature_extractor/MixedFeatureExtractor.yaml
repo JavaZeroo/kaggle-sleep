@@ -1,4 +1,6 @@
 name: MixedFeatureExtractor
+transformer_weight: False
+attention: False
 extractors:
   - name: TransformerExtractor
     height: 64
@@ -10,8 +12,13 @@ extractors:
     kernel_sizes:
       - 16
       - 8
+      - 2
       - ${downsample_rate}
     stride: ${downsample_rate}
     sigmoid: true
     reinit: true
     win_length:
+  - name: LSTMFeatureExtractor
+    hidden_size: 32
+    num_layers: 2
+    bidirectional: true

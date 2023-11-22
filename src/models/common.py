@@ -80,7 +80,7 @@ def get_feature_extractor(
             out_size=num_timesteps,
         )
     elif cfg.name == "MixedFeatureExtractor":
-        feature_extractor = MixedFeatureExtractor(extractors=[get_feature_extractor(extractor, feature_dim, num_timesteps) for extractor in cfg.extractors])
+        feature_extractor = MixedFeatureExtractor(extractors=[get_feature_extractor(extractor, feature_dim, num_timesteps) for extractor in cfg.extractors], transformer_weight=cfg.transformer_weight, attention=cfg.attention)
     else:
         raise ValueError(f"Invalid feature extractor name: {cfg.name}")
 

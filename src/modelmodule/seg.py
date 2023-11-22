@@ -33,10 +33,11 @@ class SegModel(LightningModule):
             feature_dim=feature_dim,
             n_classes=num_classes,
             num_timesteps=num_timesteps // cfg.downsample_rate,
-            sigmod=cfg.sigmod
+            sigmod=cfg.model_sigmod
         )
         self.duration = duration
-        self.sigmod = not cfg.sigmod # since model have sigmoid layer
+        self.output_sigmod = cfg.output_sigmod # since model have sigmoid layer
+        self.output_clip = cfg.output_clip
         self.validation_step_outputs: list = []
         self.__best_loss = np.inf
 
@@ -62,7 +63,7 @@ class SegModel(LightningModule):
         output = self.model(batch["feature"], batch["label"], do_mixup, do_cutmix)
         loss: torch.Tensor = output["loss"]
         logits = output["logits"]  # (batch_size, n_timesteps, n_classes)
-        if self.sigmod:
+        if self.output_sigmod:
             logits = logits.sigmoid()
         if mode == "train":
             self.log(
@@ -74,6 +75,8 @@ class SegModel(LightningModule):
                 prog_bar=True,
             )
         elif mode == "val":
+            if self.output_clip:
+                logits = torch.clamp(logits, min=0,max=1)
             resized_logits = resize(
                 logits.detach().cpu(),
                 size=[self.duration, logits.shape[2]],
