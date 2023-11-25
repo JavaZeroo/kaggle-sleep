@@ -157,8 +157,10 @@ class TrainDataset(Dataset):
         cfg: DictConfig,
         event_df: pl.DataFrame,
         features: dict[str, np.ndarray],
+        is_stage_two=False
     ):
         self.cfg = cfg
+        self.is_stage_two = is_stage_two
         self.event_df: pd.DataFrame = (
             event_df.pivot(index=["series_id", "night"], columns="event", values="step")
             .drop_nulls()
@@ -202,6 +204,7 @@ class TrainDataset(Dataset):
         # from hard label to gaussian label
         num_frames = self.upsampled_num_frames // self.cfg.downsample_rate
         label = get_label(this_event_df, num_frames, self.cfg.duration, start, end)
+        # raw_label = get_label(this_event_df, 17280, self.cfg.duration, start, end)
         label[:, [1, 2]] = gaussian_label(
             label[:, [1, 2]], offset=self.cfg.offset, sigma=self.cfg.sigma
         )
@@ -209,7 +212,8 @@ class TrainDataset(Dataset):
         return {
             "series_id": series_id,
             "feature": feature,  # (num_features, upsampled_num_frames)
-            "label": torch.FloatTensor(label),  # (pred_length, num_classes)
+            "label": torch.FloatTensor(label),  # (pred_length, num_classes)\
+            # "raw_label": torch.FloatTensor(raw_label),  # (pred_length, num_classes)
         }
 
 
@@ -219,8 +223,10 @@ class ValidDataset(Dataset):
         cfg: DictConfig,
         chunk_features: dict[str, np.ndarray],
         event_df: pl.DataFrame,
+        is_stage_two=False
     ):
         self.cfg = cfg
+        self.is_stage_two = is_stage_two
         self.chunk_features = chunk_features
         self.keys = list(chunk_features.keys())
         self.event_df = (
@@ -258,10 +264,13 @@ class ValidDataset(Dataset):
             start,
             end,
         )
+        # raw_label = get_label(self.event_df.query("series_id == @series_id").reset_index(drop=True), 17280, self.cfg.duration, start, end)
+
         return {
             "key": key,
             "feature": feature,  # (num_features, duration)
             "label": torch.FloatTensor(label),  # (duration, num_classes)
+            # "raw_label": torch.FloatTensor(raw_label),  # (pred_length, num_classes)
         }
 
 
@@ -302,9 +311,10 @@ class TestDataset(Dataset):
 # DataModule
 ###################
 class SegDataModule(LightningDataModule):
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: DictConfig, is_stage_two=False):
         super().__init__()
         self.cfg = cfg
+        self.is_stage_two = is_stage_two
         self.data_dir = Path(cfg.dir.data_dir)
         self.processed_dir = Path(cfg.dir.processed_dir)
         self.event_df = pl.read_csv(self.data_dir / "train_events.csv").drop_nulls()
@@ -336,6 +346,7 @@ class SegDataModule(LightningDataModule):
             cfg=self.cfg,
             event_df=self.train_event_df,
             features=self.train_features,
+            is_stage_two=self.is_stage_two
         )
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
@@ -352,6 +363,7 @@ class SegDataModule(LightningDataModule):
             cfg=self.cfg,
             chunk_features=self.valid_chunk_features,
             event_df=self.valid_event_df,
+            is_stage_two=self.is_stage_two
         )
         valid_loader = torch.utils.data.DataLoader(
             valid_dataset,

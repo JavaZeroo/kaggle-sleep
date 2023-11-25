@@ -1,0 +1,40 @@
+name: Spec2DCNN
+unet_class: DeepLabV3Plus
+encoder_name: efficientnet-b0
+encoder_weights: imagenet
+
+feature_extractor:
+  name: MixedFeatureExtractor
+  transformer_weight: False
+  attention: False
+  extractors:
+    # - name: TransformerExtractor
+    #   height: 64
+    #   num_layers: 2
+    #   nhead: 4
+    #   dim_feedforward: 64
+    - name: PANNsFeatureExtractor
+      base_filters: 64
+      kernel_sizes:
+        - 13
+        - 5
+        - 1
+      stride: 1
+      sigmoid: true
+      reinit: true
+      win_length:
+    # - name: LSTMFeatureExtractor
+    #   hidden_size: 32
+    #   num_layers: 2
+    #   bidirectional: true
+
+decoder:
+  name: UNet1DDecoder
+  bilinear: false
+  se: false
+  res: false
+  scale_factor: 2
+  dropout: 0.2
+
+loss:
+  name: BCE

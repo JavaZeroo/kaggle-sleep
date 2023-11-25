@@ -40,7 +40,17 @@ def main(cfg: DictConfig):  # type: ignore
     model = SegModel(
         cfg, datamodule.valid_event_df, len(cfg.features), len(cfg.labels), cfg.duration
     )
-
+    if cfg.state_dict is not None:
+        state_dict = torch.load(cfg.state_dict)
+        try:
+            model.load_state_dict(state_dict)
+            LOGGER.info(f"Load state_dict from {cfg.state_dict}")
+        except:
+            LOGGER.info(f"use checkpoint mode")
+            model.load_state_dict(state_dict['state_dict'])
+            LOGGER.info(f"Load state_dict from {cfg.state_dict}")
+        del state_dict
+            
     # set callbacks
     checkpoint_cb = ModelCheckpoint(
         verbose=True,

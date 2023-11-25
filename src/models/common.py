@@ -11,10 +11,11 @@ from src.models.decoder.transformerdecoder import TransformerDecoder
 from src.models.decoder.unet1ddecoder import UNet1DDecoder
 from src.models.feature_extractor.cnn import CNNSpectrogram
 from src.models.feature_extractor.lstm import LSTMFeatureExtractor
+from src.models.feature_extractor.mix import MixedFeatureExtractor
 from src.models.feature_extractor.panns import PANNsFeatureExtractor
 from src.models.feature_extractor.spectrogram import SpecFeatureExtractor
-from src.models.feature_extractor.transformer import TransformerFeatureExtractor
-from src.models.feature_extractor.mix import MixedFeatureExtractor
+from src.models.feature_extractor.transformer import \
+    TransformerFeatureExtractor
 from src.models.loss.focal import FocalLoss
 from src.models.loss.mix import CombinedLoss
 from src.models.spec1D import Spec1D
@@ -178,12 +179,54 @@ def get_loss_fn(loss_cfg: DictConfig, sigmod: bool) -> nn.Module:
         raise ValueError(f"Invalid loss name: {loss_cfg.name}")
     return loss_fn
 
+def get_stage_two(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: int, sigmod:bool, post_process_cfg, downsample_rate, output_sigmod, output_clip):
+    stage_two = None
+    if cfg.name == "Spec2DCNN":
+        feature_extractor = get_feature_extractor(cfg.feature_extractor, feature_dim, num_timesteps)
+        decoder = get_decoder(cfg, feature_extractor.height, n_classes, num_timesteps)
+        loss_fn = get_loss_fn(cfg.loss, sigmod)
+        stage_two = Spec2DCNN(
+            feature_extractor=feature_extractor,
+            decoder=decoder,
+            encoder_name=cfg.encoder_name,
+            in_channels=feature_extractor.out_chans,
+            encoder_weights=cfg.encoder_weights,
+            mixup_alpha=0,
+            cutmix_alpha=0,
+            unet_class=cfg.unet_class,
+            loss_fn=loss_fn,
+            model_sigmod=sigmod,
+            stage_two=None,
+            is_stage_two=True,
+            post_process_cfg=post_process_cfg, 
+            downsample_rate=downsample_rate,
+            output_sigmod=output_sigmod, 
+            output_clip=output_clip
+        )
+    elif cfg.name == 'None':
+        return None
+    else:
+        raise ValueError(f"Invalid stage_two name: {cfg.name}")
+    return stage_two
+    
+    
+
 def get_model(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: int, sigmod:bool) -> MODELS:
     model: MODELS
     if cfg.model.name == "Spec2DCNN":
         feature_extractor = get_feature_extractor(cfg.feature_extractor, feature_dim, num_timesteps)
         decoder = get_decoder(cfg, feature_extractor.height, n_classes, num_timesteps)
         loss_fn = get_loss_fn(cfg.loss, sigmod)
+        stage_two = get_stage_two(cfg.stage_two, 
+                                  feature_dim, 
+                                  n_classes, 
+                                  2880, 
+                                  sigmod, 
+                                  cfg.post_process, 
+                                  downsample_rate=cfg.downsample_rate,
+                                  output_sigmod=cfg.output_sigmod, 
+                                  output_clip=cfg.output_clip,
+                                  ) if cfg.stage_two is not None else None
         model = Spec2DCNN(
             feature_extractor=feature_extractor,
             decoder=decoder,
@@ -194,7 +237,9 @@ def get_model(cfg: DictConfig, feature_dim: int, n_classes: int, num_timesteps: 
             cutmix_alpha=cfg.augmentation.cutmix_alpha,
             unet_class=cfg.model.unet_class,
             loss_fn=loss_fn,
-            sigmod=sigmod,
+            model_sigmod=sigmod,
+            stage_two=stage_two,
+            is_stage_two=False,
         )
     elif cfg.model.name == "Spec1D":
         feature_extractor = get_feature_extractor(cfg, feature_dim, num_timesteps)

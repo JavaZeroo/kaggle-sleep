@@ -17,6 +17,7 @@ defaults:
   - feature_extractor: MixedFeatureExtractor
   - decoder: UNet1DDecoder
   - split: fold_0
+  - stage_two: None
 
 model_sigmod: false
 output_sigmod: true
@@ -39,6 +40,9 @@ accumulate_grad_batches: 1
 monitor: val_score
 monitor_mode: max
 check_val_every_n_epoch: 1
+# state_dict: /home/ljb/kaggle-child-mind-institute-detect-sleep-states/output/train/exp026/run3/child-mind-institute-detect-sleep-states/s6956feb/checkpoints/epoch=26-step=4671.ckpt
+state_dict: null
+
 
 # Dataset
 offset: 10
