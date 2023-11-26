@@ -10,9 +10,9 @@ extractors:
   - name: PANNsFeatureExtractor
     base_filters: 64
     kernel_sizes:
+      - 128
+      - 64
       - 16
-      - 8
-      - 2
       - ${downsample_rate}
     stride: ${downsample_rate}
     sigmoid: true
