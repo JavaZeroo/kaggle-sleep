@@ -15,7 +15,7 @@ defaults:
   - dir: local
   - model: Spec2DCNN
   - feature_extractor: MixedFeatureExtractor
-  - decoder: UNet1DDecoder
+  - decoder: LSTMDecoder
   - split: fold_0
 
 model_sigmod: false

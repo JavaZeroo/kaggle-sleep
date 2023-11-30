@@ -6,6 +6,7 @@ from omegaconf import DictConfig
 from src.models.decoder.informer import Informer
 from src.models.decoder.itransformer import ITransformer
 from src.models.decoder.lstmdecoder import LSTMDecoder
+from src.models.decoder.enlstm import enLSTMDecoder
 from src.models.decoder.mlpdecoder import MLPDecoder
 from src.models.decoder.transformerdecoder import TransformerDecoder
 from src.models.decoder.unet1ddecoder import UNet1DDecoder
@@ -103,6 +104,15 @@ def get_decoder(cfg: DictConfig, n_channels: int, n_classes: int, num_timesteps:
         )
     elif cfg.decoder.name == "LSTMDecoder":
         decoder = LSTMDecoder(
+            input_size=n_channels,
+            hidden_size=cfg.decoder.hidden_size,
+            num_layers=cfg.decoder.num_layers,
+            dropout=cfg.decoder.dropout,
+            bidirectional=cfg.decoder.bidirectional,
+            n_classes=n_classes,
+        )
+    elif cfg.decoder.name == "enLSTMDecoder":
+        decoder = enLSTMDecoder(
             input_size=n_channels,
             hidden_size=cfg.decoder.hidden_size,
             num_layers=cfg.decoder.num_layers,

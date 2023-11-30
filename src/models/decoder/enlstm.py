@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-class LSTMDecoder(nn.Module):
+class enLSTMDecoder(nn.Module):
     def __init__(
         self,
         input_size: int,
@@ -13,8 +13,12 @@ class LSTMDecoder(nn.Module):
         n_classes: int,
     ):
         super().__init__()
+        self.fc_in = nn.Linear(input_size, hidden_size)
+        self.ln = nn.LayerNorm(hidden_size)
+        # self.act = nn.SELU()        
+
         self.lstm = nn.LSTM(
-            input_size=input_size,
+            input_size=hidden_size,
             hidden_size=hidden_size,
             num_layers=num_layers,
             dropout=dropout,
@@ -34,6 +38,9 @@ class LSTMDecoder(nn.Module):
             torch.Tensor: (batch_size, n_timesteps, n_classes)
         """
         x = x.transpose(1, 2)  # (batch_size, n_timesteps, n_channels)
+        x = self.fc_in(x)
+        x = self.ln(x)
+        # x = self.act(x)
         x, _ = self.lstm(x)
         x = self.linear(x)
         return x
@@ -42,7 +49,7 @@ if __name__ == "__main__":
     
     channels = 8
     
-    decoder = LSTMDecoder(
+    decoder = enLSTMDecoder(
         input_size=channels,
         hidden_size=64,
         num_layers=4,

@@ -60,6 +60,8 @@ def main(cfg: DictConfig):  # type: ignore
     )
 
     trainer = Trainer(
+        strategy='ddp_find_unused_parameters_true',
+
         # env
         default_root_dir=Path.cwd(),
         # num_nodes=cfg.training.num_gpus,
