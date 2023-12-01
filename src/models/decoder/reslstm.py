@@ -56,11 +56,11 @@ class ResLSTMDecoder(nn.Module):
             tx = ln(tx)
             tx = linear(tx)
             tx = self.act(tx)
+            tx = dropout(tx)
             
             attn_output, _ = self.multihead_attn(tx, tx, tx)  # 应用多头注意力
             tx = attn_output + tx  # 添加残差连接
 
-            # tx = dropout(tx)
             x = x + tx
 
         x = self.linear(x)

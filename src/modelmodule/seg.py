@@ -5,6 +5,7 @@ import polars as pl
 import torch
 import torch.optim as optim
 from omegaconf import DictConfig
+import omegaconf
 from pytorch_lightning import LightningModule
 from torchvision.transforms.functional import resize
 from transformers import get_cosine_schedule_with_warmup
@@ -114,14 +115,27 @@ class SegModel(LightningModule):
         preds = np.concatenate([x[2] for x in self.validation_step_outputs])
         losses = np.array([x[3] for x in self.validation_step_outputs])
         loss = losses.mean()
-
-        val_pred_df = post_process_for_seg(
-            keys=keys,
-            preds=preds[:, :, [1, 2]],
-            score_th=self.cfg.post_process.score_th,
-            distance=self.cfg.post_process.distance,
-        )
-        score = event_detection_ap(self.val_event_df.to_pandas(), val_pred_df.to_pandas())
+        
+        if isinstance(self.cfg.post_process.score_th, omegaconf.listconfig.ListConfig):
+            score = 0
+            for score_th in self.cfg.post_process.score_th:
+                val_pred_df = post_process_for_seg(
+                    keys=keys,
+                    preds=preds[:, :, [1, 2]],
+                    score_th=score_th,
+                    distance=self.cfg.post_process.distance,
+                )
+                temp_score = event_detection_ap(self.val_event_df.to_pandas(), val_pred_df.to_pandas())
+                score = max(score, temp_score)
+                self.log(f"val_score_{score_th}", temp_score, on_step=False, on_epoch=True, logger=True, prog_bar=True)
+        else:
+            val_pred_df = post_process_for_seg(
+                keys=keys,
+                preds=preds[:, :, [1, 2]],
+                score_th=self.cfg.post_process.score_th,
+                distance=self.cfg.post_process.distance,
+            )
+            score = event_detection_ap(self.val_event_df.to_pandas(), val_pred_df.to_pandas())
         self.log("val_score", score, on_step=False, on_epoch=True, logger=True, prog_bar=True)
 
         if loss < self.__best_loss:

@@ -1,0 +1,19 @@
+name: MixedDecoder
+decoders:
+  - name: LSTMDecoder
+    hidden_size: 128
+    num_layers: 2
+    dropout: 0.2
+    bidirectional: true
+  - name: UNet1DDecoder
+    bilinear: false
+    se: false
+    res: false
+    scale_factor: 2
+    dropout: 0.2
+  - name: MLPDecoder
+  - name: enLSTMDecoder
+    hidden_size: 128
+    num_layers: 2
+    dropout: 0.2
+    bidirectional: true
