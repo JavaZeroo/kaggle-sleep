@@ -1,7 +1,7 @@
 name: MixedDecoder
 decoders:
   - name: LSTMDecoder
-    hidden_size: 64
+    hidden_size: 128
     num_layers: 2
     dropout: 0.2
     bidirectional: true
@@ -11,14 +11,14 @@ decoders:
     res: false
     scale_factor: 2
     dropout: 0.2
-  - name: MLPDecoder
+  # - name: MLPDecoder
   # - name: enLSTMDecoder
-  #   hidden_size: 64
+  #   hidden_size: 128
   #   num_layers: 2
   #   dropout: 0.2
   #   bidirectional: true
-  # - name: ResLSTMDecoder
-  #   hidden_size: 64
-  #   num_layers: 2
-  #   dropout: 0.2
-  #   bidirectional: true
+  - name: ResLSTMDecoder
+    hidden_size: 128
+    num_layers: 4
+    dropout: 0.2
+    bidirectional: true

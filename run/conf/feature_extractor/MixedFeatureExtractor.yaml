@@ -4,15 +4,15 @@ attention: False
 extractors:
   - name: TransformerExtractor
     height: 64
-    num_layers: 2
-    nhead: 4
-    dim_feedforward: 64
+    num_layers: 4
+    nhead: 8
+    dim_feedforward: 128
   - name: PANNsFeatureExtractor
     base_filters: 64
     kernel_sizes:
-      - 128
-      - 64
-      - 16
+      - 144
+      - 96
+      - 24
       - ${downsample_rate}
     stride: ${downsample_rate}
     sigmoid: true
@@ -20,5 +20,5 @@ extractors:
     win_length:
   - name: LSTMFeatureExtractor
     hidden_size: 32
-    num_layers: 2
+    num_layers: 4
     bidirectional: true
