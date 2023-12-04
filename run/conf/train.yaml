@@ -19,7 +19,7 @@ defaults:
   - split: fold_0
 
 model_sigmod: false
-output_sigmod: true
+output_sigmod: false
 output_clip: false
 seed: 42
 exp_name: dummy

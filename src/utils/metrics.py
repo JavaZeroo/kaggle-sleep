@@ -26,7 +26,8 @@ tolerances = {
     "onset": [12, 36, 60, 90, 120, 150, 180, 240, 300, 360],
     "wakeup": [12, 36, 60, 90, 120, 150, 180, 240, 300, 360],
 }
-
+for k,v in tolerances.items():
+    print(f"{k}: {v}")
 
 def score(
     solution: pd.DataFrame,
@@ -88,26 +89,6 @@ def event_detection_ap(
     solution = solution.sort_values([series_id_column_name, time_column_name])
     submission = submission.sort_values([series_id_column_name, time_column_name])
 
-    # Extract scoring intervals.
-    if use_scoring_intervals:
-        # intervals = (
-        #     solution.query("event in ['start', 'end']")
-        #     .assign(
-        #       interval=lambda x: x.groupby([series_id_column_name, event_column_name]).cumcount()
-        #     )
-        #     .pivot(
-        #         index="interval",
-        #         columns=[series_id_column_name, event_column_name],
-        #         values=time_column_name,
-        #     )
-        #     .stack(series_id_column_name)
-        #     .swaplevel()
-        #     .sort_index()
-        #     .loc[:, ["start", "end"]]
-        #     .apply(lambda x: pd.Interval(*x, closed="both"), axis=1)
-        # )
-        pass
-
     # Extract ground-truth events.
     ground_truths = solution.query("event not in ['start', 'end']").reset_index(drop=True)
 
@@ -117,18 +98,7 @@ def event_detection_ap(
     # Create table for detections with a column indicating a match to a ground-truth event
     detections = submission.assign(matched=False)
 
-    # Remove detections outside of scoring intervals
-    if use_scoring_intervals:
-        # detections_filtered = []
-        # for (det_group, dets), (int_group, ints) in zip(
-        #     detections.groupby(series_id_column_name), intervals.groupby(series_id_column_name)
-        # ):
-        #     assert det_group == int_group
-        #     detections_filtered.append(filter_detections(dets, ints))  # noqa: F821
-        # detections_filtered = pd.concat(detections_filtered, ignore_index=True)
-        pass
-    else:
-        detections_filtered = detections
+    detections_filtered = detections
 
     # Create table of event-class x tolerance x series_id values
     aggregation_keys = pd.DataFrame(
@@ -170,6 +140,9 @@ def event_detection_ap(
             )
         )
     )
+    for n, e in ap_table.groupby(event_column_name):
+        print(f"{n}:{e.to_list()}")
+        # print(f"{n}: {e[(n,'tolerance')]}")
     # Average over tolerances, then over event classes
     mean_ap = ap_table.groupby(event_column_name).mean().sum() / len(event_classes)
 
@@ -256,3 +229,27 @@ def average_precision_score(matches: np.ndarray, scores: np.ndarray, p: int) -> 
     precision, recall, _ = precision_recall_curve(matches, scores, p)
     # Compute step integral
     return -np.sum(np.diff(recall) * np.array(precision)[:-1])
+
+
+if __name__ == "__main__":
+    gt = pd.DataFrame(
+        {
+            'row_id': [0, 1, 2],
+            'series_id': ['a' for _ in range(3)],
+            'event': ['onset', 'wakeup', 'wakeup'],
+            'step': [19, 113, 359],
+        }
+    )
+    pred = pd.DataFrame(
+        {
+            'row_id': [0, 1, 2],
+            'series_id': ['a' for _ in range(3)],
+            'event': ['onset', 'wakeup', 'wakeup'],
+            'step': [19, 113, 359],
+            'score': [0.5, 0.5, 0.5],
+        }
+    )
+    
+    s = event_detection_ap(gt, pred)
+    print(s)
+    

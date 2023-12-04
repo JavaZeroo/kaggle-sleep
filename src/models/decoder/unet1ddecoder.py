@@ -138,19 +138,19 @@ class UNet1DDecoder(nn.Module):
             self.n_channels, 64, norm=partial(create_layer_norm, length=self.duration), se=se, res=res
         )
         self.down1 = Down(
-            64, 128, scale_factor, norm=partial(create_layer_norm, length=self.duration // 2), se=se, res=res
+            64, 128, scale_factor, norm=partial(create_layer_norm, length=self.duration // pow(scale_factor,1)), se=se, res=res
         )
         self.down2 = Down(
-            128, 256, scale_factor, norm=partial(create_layer_norm, length=self.duration // 4), se=se, res=res
+            128, 256, scale_factor, norm=partial(create_layer_norm, length=self.duration // pow(scale_factor,2)), se=se, res=res
         )
         self.down3 = Down(
-            256, 512, scale_factor, norm=partial(create_layer_norm, length=self.duration // 8), se=se, res=res
+            256, 512, scale_factor, norm=partial(create_layer_norm, length=self.duration // pow(scale_factor,3)), se=se, res=res
         )
         self.down4 = Down(
             512,
             1024 // factor,
             scale_factor,
-            norm=partial(create_layer_norm, length=self.duration // 16),
+            norm=partial(create_layer_norm, length=self.duration // pow(scale_factor,4)),
             se=se, res=res
         )
         self.up1 = Up(
@@ -158,21 +158,21 @@ class UNet1DDecoder(nn.Module):
             512 // factor,
             bilinear,
             scale_factor,
-            norm=partial(create_layer_norm, length=self.duration // 8),
+            norm=partial(create_layer_norm, length=self.duration // pow(scale_factor,3)),
         )
         self.up2 = Up(
             512,
             256 // factor,
             bilinear,
             scale_factor,
-            norm=partial(create_layer_norm, length=self.duration // 4),
+            norm=partial(create_layer_norm, length=self.duration // pow(scale_factor,2)),
         )
         self.up3 = Up(
             256,
             128 // factor,
             bilinear,
             scale_factor,
-            norm=partial(create_layer_norm, length=self.duration // 2),
+            norm=partial(create_layer_norm, length=self.duration // pow(scale_factor,1)),
         )
         self.up4 = Up(
             128, 64, bilinear, scale_factor, norm=partial(create_layer_norm, length=self.duration)
@@ -210,3 +210,10 @@ class UNet1DDecoder(nn.Module):
         # classifier
         logits = self.cls(x)  # (batch_size, n_classes, n_timesteps)
         return logits.transpose(1, 2)  # (batch_size, n_timesteps, n_classes)
+
+if __name__ == '__main__':
+    decoder = UNet1DDecoder(64, 3, 1440, bilinear=False, se=True, scale_factor=2)
+    print(f"Total parameters: {sum(p.numel() for p in decoder.parameters())/1e6} M")
+    x = torch.rand(1, 64, 1440)
+    print(decoder(x).shape)
+    

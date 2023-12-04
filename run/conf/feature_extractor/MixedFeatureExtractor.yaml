@@ -4,7 +4,7 @@ attention: False
 extractors:
   - name: TransformerExtractor
     height: 64
-    num_layers: 4
+    num_layers: 2
     nhead: 8
     dim_feedforward: 128
   - name: PANNsFeatureExtractor
@@ -20,5 +20,5 @@ extractors:
     win_length:
   - name: LSTMFeatureExtractor
     hidden_size: 32
-    num_layers: 4
+    num_layers: 2
     bidirectional: true

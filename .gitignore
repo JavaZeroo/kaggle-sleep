@@ -166,3 +166,4 @@ upload/
 nohup.out
 best_model.pth
 temp/
+pred.npy
