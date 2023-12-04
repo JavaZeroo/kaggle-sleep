@@ -7,7 +7,7 @@ decoders:
     bidirectional: true
   - name: UNet1DDecoder
     bilinear: false
-    se: false
+    se: true
     res: false
     scale_factor: 2
     dropout: 0.2
