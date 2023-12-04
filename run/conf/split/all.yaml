@@ -272,8 +272,8 @@ train_series_ids:
   - "eef041dd50aa"
   - "f0482490923c"
   - "f564985ab692"
-valid_series_ids:
   - "f56824b503a0"
   - "f7eb179216c2"
+valid_series_ids:
   - "fbf33b1a2c10"
   - "fe90110788d2"
