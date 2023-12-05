@@ -129,7 +129,8 @@ def main(cfg: DictConfig):
 
     with trace("inference"):
         keys, preds = inference(cfg.duration, test_dataloader, model, device, use_amp=cfg.use_amp, output_sigmod=cfg.output_sigmod, output_clip=cfg.output_clip)
-
+    
+    np.save(Path(cfg.dir.sub_dir) / "preds.npy", preds)
     with trace("make submission"):
         sub_df = make_submission(
             keys,
