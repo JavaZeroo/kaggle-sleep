@@ -87,7 +87,8 @@ def inference(
             with torch.cuda.amp.autocast(enabled=use_amp):
                 x = batch["feature"].to(device)
                 if debug:
-                    plt.plot(x[0, :, :].detach().cpu().numpy())
+                    plt.plot(x[0, 0, :].detach().cpu().numpy())
+                    plt.plot(x[0, 1, :].detach().cpu().numpy())
                     plt.savefig("test.png")
                 pred = model(x)["logits"]
                 if output_sigmod:
