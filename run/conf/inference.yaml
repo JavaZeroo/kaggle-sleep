@@ -17,6 +17,7 @@ defaults:
   - feature_extractor: CNNSpectrogram
   - decoder: UNet1DDecoder
 
+debug: false
 model_sigmod: false
 output_sigmod: true
 output_clip: false

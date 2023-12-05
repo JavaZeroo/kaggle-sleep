@@ -19,6 +19,7 @@ from src.models.common import get_model
 from src.utils.common import trace
 from src.utils.post_process import post_process_for_seg
 
+import matplotlib.pyplot as plt
 
 def load_model(cfg: DictConfig) -> nn.Module:
     num_timesteps = nearest_valid_size(int(cfg.duration * cfg.upsample_rate), cfg.downsample_rate)
@@ -74,7 +75,7 @@ def get_test_dataloader(cfg: DictConfig) -> DataLoader:
 
 
 def inference(
-    duration: int, loader: DataLoader, model: nn.Module, device: torch.device, use_amp, output_sigmod, output_clip
+    duration: int, loader: DataLoader, model: nn.Module, device: torch.device, use_amp, output_sigmod, output_clip, debug=False
 ) -> tuple[list[str], np.ndarray]:
     model = model.to(device)
     model.eval()
@@ -85,6 +86,9 @@ def inference(
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=use_amp):
                 x = batch["feature"].to(device)
+                if debug:
+                    plt.plot(x[0, :, :].detach().cpu().numpy())
+                    plt.savefig("test.png")
                 pred = model(x)["logits"]
                 if output_sigmod:
                     pred = pred.sigmoid()
