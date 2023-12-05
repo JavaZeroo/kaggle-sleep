@@ -100,7 +100,7 @@ def inference(
             keys.extend(key)
 
     preds = np.concatenate(preds)
-
+    print(f"preds shape: {preds.shape}")
     return keys, preds  # type: ignore
 
 
