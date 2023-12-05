@@ -132,7 +132,7 @@ def main(cfg: DictConfig):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     with trace("inference"):
-        keys, preds = inference(cfg.duration, test_dataloader, model, device, use_amp=cfg.use_amp, output_sigmod=cfg.output_sigmod, output_clip=cfg.output_clip)
+        keys, preds = inference(cfg.duration, test_dataloader, model, device, use_amp=cfg.use_amp, output_sigmod=cfg.output_sigmod, output_clip=cfg.output_clip, debug=cfg.debug)
     
     np.save(Path(cfg.dir.sub_dir) / "preds.npy", preds)
     with trace("make submission"):
