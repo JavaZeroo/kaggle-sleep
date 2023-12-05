@@ -1,25 +1,24 @@
 name: MixedFeatureExtractor
-transformer_weight: False
-attention: False
+transformer_weight: false
+attention: false
 extractors:
-  # - name: TransformerExtractor
-  #   height: 64
-  #   num_layers: 2
-  #   nhead: 8
-  #   dim_feedforward: 128
-  - name: PANNsFeatureExtractor
-    base_filters: 64
-    kernel_sizes:
-      - 512
-      - 128
-      - 64
-      - 16
-      - ${downsample_rate}
-    stride: ${downsample_rate}
-    sigmoid: true
-    reinit: true
-    win_length:
-  - name: LSTMFeatureExtractor
-    hidden_size: 32
-    num_layers: 4
-    bidirectional: true
+- name: TransformerExtractor
+  height: 64
+  num_layers: 2
+  nhead: 4
+  dim_feedforward: 64
+- name: PANNsFeatureExtractor
+  base_filters: 64
+  kernel_sizes:
+  - 128
+  - 64
+  - 16
+  - ${downsample_rate}
+  stride: ${downsample_rate}
+  sigmoid: true
+  reinit: true
+  win_length: null
+- name: LSTMFeatureExtractor
+  hidden_size: 32
+  num_layers: 2
+  bidirectional: true
